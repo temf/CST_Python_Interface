@@ -1,0 +1,327 @@
+\documentclass[12pt,accentcolor=tud2b, colorback, openany]{tudreport}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage[ngerman]{babel}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{subcaption}
+\usepackage{circuitikz}
+\usepackage{siunitx}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage{hyperref}
+
+\lstset{ % Python Settings
+	language=Python,
+	extendedchars=true,
+	basicstyle=\footnotesize,
+	numbers=left,
+	numberstyle=\tiny\color{gray},
+	stepnumber=1,
+	numbersep=10pt,
+	showspaces=false,
+	showstringspaces=false,
+	tabsize=2,
+	breaklines=true,
+	frame=single,
+	morecomment = [l][\itshape\color{blue}]{\%},
+	captionpos=t,
+	title=\lstname,
+	keywordstyle=\color{blue},
+	morekeywords={*,for,range},
+	commentstyle=\color{gray}
+}
+
+\graphicspath{{src/}}
+
+%\setinstitutionlogo{celogo}
+%%% Untere Titelrückseite
+\title{Control CST Studio 2020 with Python}
+\subtitle{Marc Bodem\\Version: October 2020}
+%Beginn des Dokuments
+\begin{document}
+	
+	\maketitle
+	\tableofcontents
+	\newpage
+
+	%commands:	
+	%text here:
+	\chapter{Introduction}
+	This small tutorial will help you tu use Python in connection with CST Studio Suite 2020. Therefore the implementation with Malab will be redundant. It is possible to open files, change Parameters, start solvers (even Parameter Sweep) and access the results in appropiate way. Possbile is this through the new Python Interface from CST Studio 2020 and some VBA scripts, which you can write and execute in your Python code directly.\\
+	\\
+	\\
+	You can access the Python Help of CST via\\
+	\\
+	\texttt{C:\textbackslash Program Files (x86)\textbackslash CST Studio Suite 2020\textbackslash Online Help\textbackslash Python}\\
+	\\
+	\\
+	If you want to know more about VBA scripting for CST checkout\\
+	\\
+	\href{http://www.mweda.com/cst/cst2013/vba/vba_macro_language_overview.htm}{http://www.mweda.com/cst/cst2013/vba/vba\_macro\_language\_overview.htm}
+	
+	\chapter{Programs and versions used}
+	For my implentation I used the following programs and versions:
+	\begin{itemize}
+		\item Anaconda
+		\item Spyder 4.1.5
+		\item Python 3.6.12
+		\item CST Studio Suite 2020 (no Student version!)
+	\end{itemize}
+	It is really important to use Python 3.6.x and CST Studio Suite 2020 because just these two versions will work together properly.
+	
+	\chapter{Installation}
+	Install CST 2020 as usual. There is nothing to note here. Then download Anaconda. Spyder comes with it and install it. It is possible, that you do not have the latest Spyder version. To Update Spyder open \textit{Anaconda Prompt} from your Windows menu. Then update everything with:\\
+	\\
+	\texttt{conda update conda\\
+		conda update anaconda\\
+		conda update spyder\\}\\
+	Because Anaconda provides a newer Python version than 3.6.x you have to download the Python version from \href{https://www.python.org/downloads/}{\textit{Python.org}}. Then install the Python version you downloaded.\\
+	In the next step a new Anaconda environment has to be created. To do this open your \textit{Anaconda Prompt} once again and type\\
+	\\	
+	\texttt{conda create -n py36 python=3.6 spyder-kernels}\\
+	\\
+	to create a new environment for your Python 3.6.x. To add the new Python interpreter to your Spyder open Spyder and go to \textit{Tools} $\rightarrow$ \textit{Preferences} $\rightarrow$ \textit{Python Interpreter} $\rightarrow$ \textit{Use the following Python Interpreter}. Choose your new Python 3.6.x installation. For me the path was the following:\\
+	\\
+	\texttt{C:\textbackslash Users\textbackslash marc\textbackslash anaconda3\textbackslash envs\textbackslash py36\textbackslash python.exe}\\
+	\\
+	Restart Spyder and check in the console if Python 3.6.x is used.\\
+	Now everything is set up to use Python in connection with CST 2020. To check everything works fine use the following short routine.\\
+	\\
+	\texttt{import sys\\
+		sys.path.append(r"C:\textbackslash Program Files (x86)\textbackslash CST Studio Suite 2020\textbackslash AMD64\textbackslash \dots \\ python\_cst\_libraries")\\
+		import cst\\
+		print(cst.\_\_file\_\_)\\ \# should print '<PATH\_TO\_CST\_AMD64>\textbackslash python\_cst\_libraries\textbackslash cst\textbackslash\_\_init\_\_.py'
+	}\\
+	\\
+	If the path is returned correctly you can start to use CST with Python.
+	
+	\chapter{Implementation}
+	\section{Setup}
+	You have already seen some code brackets you will use in your Python implementation. We are going a step back and start with the small check routine you have already used. To start your implementation you have to add CST to your Python. You will do that by using\\
+	\\
+	\texttt{import sys\\
+		sys.path.append(r"C:\textbackslash Program Files (x86)\textbackslash CST Studio Suite 2020\textbackslash AMD64...\\
+		\textbackslash python\_cst\_libraries")}\\
+	\\
+	Here the CST path is added to our little program. In the next step you have to import CST to use it. So\\
+	\\
+	\texttt{import cst}\\
+	\\
+	will import it.\\
+	In the following we have to use some interfaces which are provided by the CST Python implementation. You will use the interface \texttt{cst.interface} to control the running CST and the interface \texttt{cst.results} to provide access to the 0D and 1D Results of your cst file. So import both interfaces via\\
+	\\
+	\texttt{import cst.interface\\
+	import cst.results}\\
+	\\
+	To work with the results we also import numpy.\\
+	\\
+	\texttt{import numpy as np}
+	\section{Start CST, open and close files}
+	Now you can start to open CST with\\
+	\\
+	\texttt{mycst=cst.interface.DesignEnvironment()}\\
+	\\
+	and the desired project with\\
+	\\
+	\texttt{mycst1=cst.interface.DesignEnvironment.open\_project(mycst,r'Path to your cst file')}\\
+	\\
+	You can close CST with\\
+	\\
+	\texttt{cst.interface.DesignEnvironment.close(mycst)}
+	\section{Change Parameters}
+	Now it is possible to start a solver or what we do here to change parameters in the first place and then starting the solver. Because there is no published method to change parameters yet, we have to work with a VBA script here. But no worries, we can implement that easily in our Python routine. So it is possible to do anything what you can do in VBA with CST with Python as well. So now you can write some VBA code, which we can start later, as a normal string variable. You can either use the classic way, where you change Parameters and update the model on your own, just the way you would do it in CST, or you can use the build-in Parameter Sweep Option, where you can define parameter combinations you want to test. This decision will lead in different ways how to solve and even access the results.\\
+	\\
+	\textit{Note: In VBA code \texttt{\textbackslash n} stands for a new line. You can either write it just before your commands like here or you can add a blank after it.}
+	\subsection{Classic}
+	In the classic way you start the VBA code with\\
+	\\
+	\texttt{Sub Main ()}\\
+	\\
+	Then you are able to change some parameters of interest with\\
+	\\
+	\texttt{\textbackslash nStoreParameter("wg\_h", '+str(0.3)+')},\\
+	\\
+	where wg\_h is the parameter you are changing and 0.3 is the new value.\\
+	You can repeat this for all parameters you want to change. In the end you have to update the model which you can do with\\
+	\\
+	\texttt{\textbackslash nRebuildOnParametricChange (bfullRebuild, bShowErrorMsgBox)}\\
+	\\
+	and you are closing the VBA script with\\
+	\\
+	\texttt{\textbackslash nEnd Sub}\\
+	\\
+	As a whole you get the following code for 2 parameters.\\
+	\\
+	\texttt{par\_change = 'Sub Main () \textbackslash nStoreParameter("wg\_h", '+str(0.3)+')...\\
+	\textbackslash nStoreParameter("wg\_w",'+str(28)+')...\\
+	\textbackslash nRebuildOnParametricChange (bfullRebuild, bShowErrorMsgBox)...\\
+	\textbackslash nEnd Sub'}\\
+	\\
+	After defining your VBA code you can execute it with\\
+	\\
+	\texttt{mycst1.schematic.execute\_vba\_code(par\_change, timeout=None)}\\
+	\\
+	Now all parameters will be updated as you defined them. 
+	\subsection{Parameter Sweep Option}
+	Just like in the classic way every VBA script starts with\\
+	\\
+	\texttt{Sub Main ()}\\
+	\\
+	You can add a Sequence to the Parameter Sweep via\\
+	\\
+	\texttt{\textbackslash nParameterSweep.AddSequence('\textit{Name of Sequence}')}\\
+	\\
+	\textit{Note: Please make sure that there are no old sequences you do not want to use in your CST file before adding new sequences. To make sure that all sequences are deleted use\\
+	\\
+	\texttt{delete ='Sub Main() \textbackslash nParameterSweep.DeleteAllSequences() \textbackslash nEnd Sub'\\
+	mycst1.schematic.execute\_vba\_code(delete, timeout=None)}\\
+	\\
+	to delete all sequences before adding new ones.}\\
+	\\
+	If you want to test specific parameter combinations every combination has to have its own sequence.\\
+	You can add a parameter to the sequence using\\
+	\\
+	\texttt{\textbackslash nParameterSweep.AddParameter('\textit{Name of Sequence}',"\textit{Name of Parameter}",...\\
+	'+str(True)+','+str(\textit{from})+','+str(\textit{to})+','+str(\textit{steps})+')}\\
+	\\
+	where you can use the from-to function with a number of steps.\\
+	Close the VBA script with\\
+	\\
+	\texttt{\textbackslash nEnd Sub}\\
+	\\
+	Here you can see a small example how to use the functions:\\
+	\\
+	\texttt{createSequence = 'Sub Main () \textbackslash nParameterSweep.AddSequence('+str(Seq1)+') \textbackslash nEnd Sub'\\
+	add\_Para\_1 = 'Sub Main () \textbackslash nParameterSweep.AddParameter('+str(Seq1)+',"d",...\\
+	'+str(True)+','+str(1)+','+str(5)+','+str(50)+') \textbackslash nEnd Sub'\\
+	add\_Para\_2 = 'Sub Main () \textbackslash nParameterSweep.AddParameter('+str(Seq1)+',"w",...\\
+	'+str(True)+','+str(14)+','+str(19)+','+str(20)+')}\\
+	\\
+	You can execute the VBA scripts via\\
+	\\
+	\texttt{mycst1.schematic.execute\_vba\_code(createSequence, timeout=None)\\
+		mycst1.schematic.execute\_vba\_code(add\_Para\_1, timeout=None)\\
+		mycst1.schematic.execute\_vba\_code(add\_Para\_2, timeout=None)}\\
+	\\
+	If you want to use the same file again with other combinations, be sure to delete all sequences after you solved your problem. Use\\
+	\\
+	\texttt{delete ='Sub Main() \textbackslash nParameterSweep.DeleteAllSequences() \textbackslash nEnd Sub'\\
+	mycst1.schematic.execute\_vba\_code(delete, timeout=None)}\\
+	\\
+	to delete all sequences.
+	\section{Solve}
+	In the next step you can start the solver with
+	\subsection{Classic}
+	\texttt{mycst1.modeler.run\_solver()}
+	\subsection{Parameter Sweep Option}
+	\texttt{solve = 'Sub Main () \textbackslash nParameterSweep.Start \textbackslash nEnd Sub'\\
+	mycst1.schematic.execute\_vba\_code(solve, timeout=None)}
+	\section{Access S-Parameters}
+	After the simulation is done you can access the S-Parameter data. To do this you have to define your CST file path once again for the results interface.\\
+	\\
+	\texttt{project = cst.results.ProjectFile(r'Path to your CST file')}\\
+	\\
+	In order to make data (e.g. S-parameter) accessible while the CST file is opened, the additional command \texttt{allow\_interactive=True} has to be included, i.e.,\\
+	\\
+	\texttt{project = cst.results.ProjectFile(r'Path to your CST file', allow\_interactive=True)}\\
+	\\
+	Now you can choose from the different S-Parameter results. Here we want to access the S21 Parameters for our object.
+	
+	\subsection{One parameter combination}
+	If you just have one parameter combination you can access the results with\\
+	\\
+	\texttt{results = project.get\_3d().get\_result\_item(r"1D Results\textbackslash S-Parameters\textbackslash S2,1")}\\
+	\\
+	From the results we can derive the frequencies with\\
+	\\
+	\texttt{freq = np.array(S21\_data.get\_xdata())}\\
+	\\
+	and the S21 Parameters with\\
+	\\
+	\texttt{S21 = np.array(S21\_data.get\_ydata())}\\
+	\subsection{More than one parameter combination or Parameter Sweep Option}
+	\subsubsection{No Tasks}
+	If you are not using tasks in your CST file you can start to access the results as follows. After defing your project path you can access the results via\\
+	\\	
+	\texttt{results = project.get\_3d().get\_result\_item(r"1D Results\textbackslash S-Parameters\textbackslash S2,1",k)}\\
+	\\
+	where k defines the $k^{\text{th}}$ parameter combination you tested. The number of parameter combinations start with 1 and not with 0 because 0 is used for the Current Run.\\
+	Further you can access the frequencies with\\
+	\\
+	\texttt{freqs = results.get\_xdata()}\\
+	\\
+	and the S-Parameters with\\
+	\\
+	\texttt{S21 = results.get\_ydata()}
+
+	\subsubsection{Tasks}
+	If you are using Tasks in your CST file you have to use the schematic tree. Therefore you have to open it via\\
+	\\
+	\texttt{schematic = project.get\_schematic()}\\
+	\\
+	Then you can access the results with\\
+	\\
+	\texttt{results = schematic.get\_result\_item('Tasks\textbackslash\textbackslash SPara1\textbackslash\textbackslash S-Parameters\textbackslash\textbackslash S2,1',k)}\\
+	\\
+	where k defines, as in the part without tasks, the $k^{\text{th}}$ parameter combination you tested. The number of parameter combinations start with 1 and not with 0 because 0 is used for the Current Run.\\
+	Further you can access the frequencies with\\
+	\\
+	\texttt{freqs = results.get\_xdata()}\\
+	\\
+	and the S-Parameters with\\
+	\\
+	\texttt{S21 = results.get\_ydata()}
+	
+	
+	\section{Prepare CST file}
+	
+	The solver settings should be done in the CST file, i.e., the choice of the solver, the mesh or the number of frequency data points.	
+	
+	\subsection{Define number of result data samples}
+	The S-Parameter will be evaluated in a given number of frequency result data samples, which can be specified in your cst file.
+	\subsubsection{Classic}
+	In the classic way of the implementation you can change the number of result data samples at \textit{Solver Setup} $\rightarrow$ \textit{Method} $\rightarrow$ \textit{Properties...} $\rightarrow$ \textit{Result Data Sampling} $\rightarrow$ \textit{Number of result data samples}.
+	\subsubsection{Tasks} 
+	Using Tasks you can define the number of result data samples if you select your Task and then go to \textit{Task Parameter List (Your Task)} $\rightarrow$ \textit{S-Parameters} $\rightarrow$ \textit{Simulation Settings} $\rightarrow$ \textit{Samples}. 
+	
+	\subsection{Activate Parameter Sweep}
+	If the Parameter Sweep option should be used, it seems to be necessary to activate this option in the CST file. This can be done by adding and deleting a new sequence: \textit{Home} $\rightarrow$ \textit{Par. Sweep} $\rightarrow$ \textit{New. Seq.} $\rightarrow$ \textit{Delete}$\rightarrow$ \textit{Close}. Then the CST file can be saved and closed and the Parameter Sweep Option can be run from Python.
+	
+	\subsection{Delete old results}
+	Using the Parameter Sweep Option, a list of result data is imported to Python. Since the import starts in the beginning of the result data, old result data have to be deleted. This can be done by deleting the result folder within the created project folder. Using Python, this could be done by running\\
+	\\
+	\texttt{import shutil}\\
+	\texttt{try:}\\
+	\hspace*{0.3cm}\texttt{shutil.rmtree(cst\_result\_folder)}\\
+	\texttt{except OSError as e:}\\
+	\hspace*{0.3cm}\texttt{print(e)}\\
+	\texttt{else:}\\
+	\hspace*{0.3cm}\texttt{print("The results directory is deleted successfully")}\\
+	\\
+	before the project is opened.
+	
+	\chapter{Examples}
+	In the following we present two examples from the CST Component Library: the \textit{S-Parameter Lowpass} (as Design Studio example) and the \textit{Lossy Load Waveguide} (as Microwave Studio example). For both, the frequency domain solver has been applied. The lowpass filter uses tasks and the Parameter Sweep Option. The waveguide examples use the Parameter Sweep Option for more than one parameter and the classic way for one parameter. Both examples have two different templates you can access to get a better understanding how to use the Python CST interface. One template always shows you how to use the techniques of this tutorial when you want to change only one parameter. The other template shows you how to change a set of parameters.
+	
+	
+	%Appendix
+	%\listoffigures
+	%\listoftables
+	\appendix
+	%Anhang hier:
+	\chapter{Example programs}
+	\lstinputlisting{./../Template_Lowpass.py}
+	\newpage
+	\lstinputlisting{./../Template_Lowpass_1_Para.py}
+	\lstinputlisting{./../Template_LLwaveguide.py}
+	\lstinputlisting{./../Template_LLwaveguide_1_Para.py}
+	
+	
+	
+	
+	
+	
+\end{document}
